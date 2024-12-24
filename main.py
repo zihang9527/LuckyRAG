@@ -1,49 +1,25 @@
 import os
-from openai import OpenAI, embeddings
 import json
-import chromadb
 
-# chroma
-client = chromadb.Client()
-collection = client.create_collection(name="my_collection")
+from embedding.qwen_embedding import QwenEmbedding
+from parser.txt_parser import TXTParser
 
-# qwen api
-llm = OpenAI(
-    # 若没有配置环境变量，请用百炼API Key将下行替换为：api_key="sk-xxx",
-    api_key = "sk-effb7a023271466c9ceb33365c970e5b",
-    base_url= "https://dashscope.aliyuncs.com/compatible-mode/v1",
-)
+current_path = '/cloudide/workspace/LuckyRAG'
+os.chdir(current_path)
+file_path = 'data/data.txt'
 
-# build db
-texts = ["余大伟出生于1997年，今年2024年，它今年28岁。",'余大伟最喜欢打游戏。','余大伟喜欢白色双马尾、穿着白色丝袜的萝莉，男女不限']
+embedding = QwenEmbedding(api_key='sk-effb7a023271466c9ceb33365c970e5b')
 
-embeddings_response = llm.embeddings.create(
-    model="text-embedding-v3",
-    input= texts,
-    encoding_format="float"
-)
-for i in range(len(embeddings_response.data)):
-    embeddings = embeddings_response.data[i].embedding
-    collection.add(
-        documents=[texts[i]],
-        embeddings=[embeddings],
-        ids=[f"id{i+1}"]
-    )
+# parser = TXTParser(file_path=file_path, model=embedding)
+# parser.parse()
+# print(parser.parse_output[0])
+# print(len(parser.parse_output))
 
-query = ['余大伟喜欢什么']
-embeddings_query = llm.embeddings.create(
-    model="text-embedding-v3",
-    input= query,
-    encoding_format="float"
-)
-query_embedding = embeddings_query.data[0].embedding
-results = collection.query(
-    query_embeddings=[query_embedding],
-    n_results=2
-)
+# 解析文件
+# parser.parse_file('data/余大伟.txt')
+# 初始化向量存储
+# embedding = QwenEmbedding()
+# 构建向量数据库
+# embedding.build_db(parser.get_texts())
+# 构建查询
 
-res = ''
-for i in range(len(results['ids'][0])):
-    res += results['documents'][0][i]
-    res += '\n'
-print(res)
