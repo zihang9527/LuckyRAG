@@ -7,13 +7,10 @@ import json
 import datetime
 
 from logger import logger
-from embedding.qwen_embedding import QwenEmbedding
-from llm.qwen_llm import QwenLLM
 from argument import Argument
-from retriever.chroma_retriever import ChromaRetriever
-from logger import logger
-from embedding.bge_embedding import BgeEmbedding
-from llm.qwen_llm import QwenLLM
+from src.embedding.bge_embedding import BgeEmbedding
+from src.llm.qwen_llm import QwenLLM
+from src.retriever.chroma_retriever import ChromaRetriever
 from metric import (
     bleu_score, 
     rougeL_score, 
@@ -93,6 +90,9 @@ def get_task_datasets(file_path: str)-> list:
 def retrieve_docs(query, retriever, top_n):
     query_text = query["questions"]
     db_results = retriever.search(query=query_text, top_n=top_n)
+    db_results = db_results['documents'][0]
+    db_results = ' '.join(db_results)
+
     return db_results
 
 def model_generation(obj, llm):
@@ -185,4 +185,5 @@ def eval():
 
     
 if __name__ == '__main__':
-    eval()
+    # eval()
+    print("hello world")

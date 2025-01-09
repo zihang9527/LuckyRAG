@@ -107,6 +107,7 @@ db_results = test_collection.query(
     query_embeddings=[embeddings_query],
     n_results=2
 )
+
 temp = []
 for ls in db_results['documents']:
     for s in ls:

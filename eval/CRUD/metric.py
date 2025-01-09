@@ -23,7 +23,7 @@ def bleu_score(
     with_penalty = False
 ) -> float:
     f = lambda text: list(jieba.cut(text))
-    bleu = evaluate.load('src/.cache/huggingface/bleu')
+    bleu = evaluate.load('src/eval/metric/bleu')
     results = bleu.compute(predictions=[continuation], references=[[reference]], tokenizer=f)
     
     bleu_avg = results['bleu']
@@ -45,7 +45,7 @@ def rougeL_score(
     reference: str
 ) -> float:
     f = lambda text: list(jieba.cut(text))
-    rouge = evaluate.load('src/.cache/huggingface/rouge')
+    rouge = evaluate.load('src/eval/metric/rouge')
     results = rouge.compute(predictions=[continuation], references=[[reference]], tokenizer=f, rouge_types=['rougeL'])
     score = results['rougeL']
     return score
