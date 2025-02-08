@@ -4,7 +4,6 @@ from collections import defaultdict
 import sys
 import os
 import re
-
 from nltk.tokenize import sent_tokenize
 from .base_parser import BaseParser
 
@@ -72,14 +71,3 @@ class TXTParser(BaseParser):
 if __name__ == "__main__":
     parser = TXTParser(sys.argv[1], None)
     print(parser._to_sentences())
-    # print(parser.parse_output)
-    # parser.parse()
-    
-    # import os
-    # current_path = os.getcwd()
-    # print("当前路径：", current_path)
-    
-    # parser = TXTParser('LuckyRAG/data/data.txt', None)
-    # print(parser._to_sentences())
-    # parser.parse()
-    # print(parser.parse_output)

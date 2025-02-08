@@ -1,6 +1,7 @@
 import os
 import json
 from typing import Dict, List, Optional, Tuple, Union
+import requests
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig
@@ -8,32 +9,35 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, AutoConfig
 from .base_llm import BaseLLM
 
 class QwenLLM(BaseLLM):
-    def __init__(self, model_id_key: str, device: str = "cpu", is_api=False) -> None:
-        super().__init__(model_id_key, device, is_api)
-        self.is_api = is_api
-        if self.is_api == True:
+    def __init__(self, key: str = None, url: str = None, model_path: str = None, device: str = "cpu", max_new_tokens:int = 100, temperature:float = 1.0) -> None:
+        super().__init__(key, url, model_path, device)
+
+        if self.key != None:
             from openai import OpenAI 
             self.client = OpenAI(
-                api_key= model_id_key,
+                api_key= self.key,
                 base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
             )
-        else:
+        elif self.url != None:
+            self.max_new_tokens = max_new_tokens
+            self.temperature = temperature
+        elif self.model_path != None:
             # 从预训练模型加载因果语言模型
             self.model = AutoModelForCausalLM.from_pretrained(
-                self.model_id_key,  # 模型标识符
+                self.model_path,  # 模型标识符
                 torch_dtype="auto",  # 自动选择张量类型
                 device_map=self.device,  # 分布到特定设备上
                 trust_remote_code=True  # 允许加载远程代码
             )
             # 加载分词器
             self.tokenizer = AutoTokenizer.from_pretrained(
-                self.model_id_key,  # 分词器标识符
+                self.model_path,  # 分词器标识符
                 trust_remote_code=True
             )
             
             # 加载配置文件
             self.config = AutoConfig.from_pretrained(
-                self.model_id_key,  # 配置文件标识符
+                self.model_path,  # 配置文件标识符
                 trust_remote_code=True  # 允许加载远程代码
             )
 
@@ -45,7 +49,8 @@ class QwenLLM(BaseLLM):
 
     def generate(self, content: str) -> str:
         response = ''
-        if self.is_api == True:
+
+        if self.key != None:
             messages = [
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": content}
@@ -55,7 +60,13 @@ class QwenLLM(BaseLLM):
                 messages=messages
             )
             response = completion.choices[0].message.content
-        else:
+        elif self.url != None:
+            data = {'prompt': content, 'max_new_tokens': self.max_new_tokens, "temperature": self.temperature}
+
+            response = requests.post(self.url, json=data)
+            response = eval(response.text)['response']
+            response = response[len(content):]
+        elif self.model_path != None:
             messages = [
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": content}

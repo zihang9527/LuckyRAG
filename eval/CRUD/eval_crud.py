@@ -1,3 +1,4 @@
+from multiprocessing import context
 from typing import Collection
 import math
 import random
@@ -5,6 +6,7 @@ from tqdm import tqdm
 import os
 import json
 import datetime
+import time
 
 from logger import logger
 from argument import Argument
@@ -36,7 +38,7 @@ def read_all_files_in_directory(directory_path):
     for root, dirs, files in os.walk(directory_path):
         for file in files:
             file_path = os.path.join(root, file)
-            with open(file_path, 'r') as f:
+            with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
                 for line in f:
                     data_list.append(line.strip())
     
@@ -45,43 +47,41 @@ def read_all_files_in_directory(directory_path):
     return data_list
 
 def process_data_and_build_db(directory_path, embedding, persist_file_path=None, collection_name=None):
-    instances = read_all_files_in_directory(directory_path)
+    db = ChromaRetriever(persist_file_path=persist_file_path, embedding=embedding)
 
-    docs_file_path = directory_path + '/docs.json'
-    docs = []
-    # 如果docs文件不存在，则构建docs
-    if not os.path.exists(docs_file_path):
-        for instance in tqdm(instances):
-                dic = {}
-                dic['content'] = instance
-                dic['embedding'] = embedding.get_embedding(instance)
-                docs.append(dic)
-
-        with open(docs_file_path, "w") as json_file:
-            json.dump(docs, json_file, ensure_ascii=False)
-    else:
-        with open(docs_file_path, "r") as json_file:
-            docs = json.load(json_file)
-    
-    # random.shuffle(docs)
-
-    # 构建db
-    db = ChromaRetriever(persist_file_path=persist_file_path)
     if db.load(collection_name=collection_name) == False:
-        db.create(collection_name=collection_name)
-    db.add(docs)
+        # 读取所有文件
+        instances = read_all_files_in_directory(directory_path)
+        docs_file_path = directory_path + '/docs.json'
+        docs = []
+        # 如果docs文件不存在，则构建docs
+        if not os.path.exists(docs_file_path):
+            for instance in tqdm(instances):
+                    dic = {}
+                    dic['content'] = instance
+                    dic['embedding'] = embedding.get_embedding(instance)
+                    docs.append(dic)
 
+            with open(docs_file_path, "w") as json_file:
+                json.dump(docs, json_file, ensure_ascii=False)
+        else:
+            with open(docs_file_path, "r") as json_file:
+                docs = json.load(json_file)
+
+        db.create(collection_name=collection_name)
+        db.add(docs)
+        
     return db
 
 def get_task_datasets(file_path: str)-> list:
     task_datasets = []
     data = {}
-    with open(file_path) as f:
+    with open(file_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
     task_datasets += data['questanswer_1doc']
-    task_datasets += data['questanswer_2doc']
-    task_datasets += data['questanswer_3doc']
+    task_datasets += data['questanswer_2docs']
+    task_datasets += data['questanswer_3docs']
     
     random.shuffle(task_datasets)
 
@@ -158,9 +158,11 @@ def eval():
     persist_file_path = ''
     collection_name = ''
     dataset_file = '/home/ubuntu/llm/eval/eval_data/eval_data.json'
+    result_file_path = 'res/eval_result.json'
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 
     embedding = BgeEmbedding(model_path = embedding_model, is_api=False)
-    llm = QwenLLM(model_id_key=llm_path, is_api=False)
+    llm = QwenLLM(model_id_key=llm_path, device=device, is_api=False)
 
     db = process_data_and_build_db(doc_path, embedding, persist_file_path, collection_name=collection_name)
 
@@ -169,21 +171,32 @@ def eval():
     
     results = []
     for data in tqdm(task_datasets):
+
+        start_time = time.time()
         db_results = retrieve_docs(data, db, top_n=5)
+        end_time = time.time()
+        print(f"retrieve time: {end_time - start_time}")
 
-        data["retrieve_context"] = db_results['documents']
+        data["retrieve_context"] = db_results
 
+        start_time = time.time()
         generated_text = model_generation(data, llm)
+        end_time = time.time()
+        print(f"generate time: {end_time - start_time}")
+        
         data["generated_text"] = generated_text
 
         result = scoring(data)
         results.append(result)
 
         # logger.info(f"result: {result}")
+
+    with open(result_file_path, 'w', encoding='utf-8') as f:
+        json.dump(results, f, ensure_ascii=False)
+    
     overall = compute_overall(results)
     logger.info(f"overall: {overall}")
 
-    
 if __name__ == '__main__':
     # eval()
     print("hello world")

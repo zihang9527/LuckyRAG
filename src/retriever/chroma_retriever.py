@@ -31,11 +31,11 @@ class ChromaRetriever:
     
     def search(self, query: str, top_n: int = 3):
         query_embedding = self.embedding.get_embedding(query)
-
         db_results = self.collection.query(
             query_embeddings=[query_embedding],
             n_results=top_n
         )
+        
         return db_results
         
         

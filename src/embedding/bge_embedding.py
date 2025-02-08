@@ -31,6 +31,6 @@ class BgeEmbedding(BaseEmbedding):
         sentence_embeddings = torch.nn.functional.normalize(sentence_embeddings, p=2, dim=1)
         sentence_embeddings = sentence_embeddings.tolist()[0]
 
-        print("Sentence embeddings:", sentence_embeddings)
+        # print("Sentence embeddings:", sentence_embeddings)
 
         return sentence_embeddings

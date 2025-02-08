@@ -5,11 +5,12 @@ class BaseLLM(ABC):
     """
     Base class for embeddings
     """
-    def __init__(self, model_id_key: str, device:str = "cpu", is_api=False) -> None:
+    def __init__(self, key: str = None, url: str = None, model_path: str = None, device: str = "cpu") -> None:
         super().__init__()
-        self.model_id_key = model_id_key
+        self.model_path = model_path
+        self.key = key
+        self.url = url
         self.device = device
-        self.is_api = is_api
 
     @abstractmethod
     def generate(self, content: str) -> str:
