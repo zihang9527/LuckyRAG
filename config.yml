@@ -1,0 +1,20 @@
+
+
+
+# 数据库配置
+database:
+  host: localhost
+  port: 5432
+  user: myuser
+  password: mypassword
+  dbname: mydatabase
+
+# API配置
+api:
+  url: https://api.example.com
+  key: abcdef123456
+
+# 日志配置
+logging:
+  level: INFO
+  file: app.log

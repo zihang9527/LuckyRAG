@@ -6,19 +6,14 @@ from typing import List, Any, Tuple
 from .bm25 import BM25Okapi
 
 class BM25Retriever:
-    def __init__(self, txt_list: List[str]=[], base_dir="data/db/bm_corpus") -> None:
-        self.data_list = txt_list
+    def __init__(self, base_dir="data/db/bm_corpus", db_name = "bm25_data") -> None:
+        self.data_list = []
         self.tokenized_corpus = []
         self.base_dir = base_dir
+        self.db_name = db_name
 
         if not os.path.exists(self.base_dir):
             os.makedirs(self.base_dir, exist_ok=True)
-
-        if len(self.data_list) != 0:
-            self.build(self.data_list)
-            print("初始化数据库！ ")
-        else:
-            print("未初始化数据库，请加载数据库！ ")
         
     def build(self, txt_list: List[str]):
         self.data_list = txt_list.copy()  # 防御性拷贝，防止外部列表修改影响内部状态
@@ -27,7 +22,9 @@ class BM25Retriever:
             self.tokenized_corpus.append(self.tokenize(doc['content']))
         # 初始化 BM25Okapi 实例
         self.bm25 = BM25Okapi(self.tokenized_corpus)
-    
+
+        self.save_bm25_data()
+        
     def add(self, new_txt_list: List[str], auto_save: bool = False):
         """增量添加新文本并更新模型"""
         if not hasattr(self, 'bm25') or self.bm25 is None:
@@ -52,17 +49,15 @@ class BM25Retriever:
         """
         return list(jieba.cut_for_search(text))
 
-    def save_bm25_data(self, db_name=""):
+    def save_bm25_data(self, db_name="bm25_data"):
         """ 对数据进行分词并保存到文件中。
         """
-        db_name = db_name if db_name != "" else "bm25_data"
         db_file_path = os.path.join(self.base_dir, db_name + ".pkl")
         # 保存分词结果
         data_to_save = {
             "data_list": self.data_list,
             "tokenized_corpus": self.tokenized_corpus
         }
-        
         with open(db_file_path, 'wb') as f:
             pickle.dump(data_to_save, f)
 
@@ -71,14 +66,19 @@ class BM25Retriever:
         """
         db_file_path = os.path.join(self.base_dir, db_name + ".pkl")
         
-        with open(db_file_path, 'rb') as f:
-            data = pickle.load(f)
-        
-        self.data_list = data["data_list"]
-        self.tokenized_corpus = data["tokenized_corpus"]
-        
-        # 重新初始化 BM25Okapi 实例
-        self.bm25 = BM25Okapi(self.tokenized_corpus)
+        if os.path.exists(db_file_path):
+            with open(db_file_path, 'rb') as f:
+                data = pickle.load(f)
+            
+            self.data_list = data["data_list"]
+            self.tokenized_corpus = data["tokenized_corpus"]
+            
+            # 重新初始化 BM25Okapi 实例
+            self.bm25 = BM25Okapi(self.tokenized_corpus)
+
+            return True
+        else:
+            return False
     
     def search(self, query: str, top_n=5) -> List[Tuple[int, str, float]]:
         """ 使用BM25算法检索最相似的文本。
