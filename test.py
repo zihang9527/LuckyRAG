@@ -10,6 +10,7 @@ from docling.datamodel.pipeline_options import PdfPipelineOptions, EasyOcrOption
 from docling.document_converter import DocumentConverter, PdfFormatOption
 from docling.pipeline.standard_pdf_pipeline import StandardPdfPipeline
 
+import embedding
 from langchain_text_splitters import MarkdownHeaderTextSplitter
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -97,35 +98,69 @@ def main(ouput_type):
 
 
 
-
 if __name__ == '__main__':
     # main()
     from src.parser.pdf_parser import PdfParser
 
     pdf_parser = PdfParser(ocr_model_path='./data/ocr_model', artifacts_path='./data/artifacts')
-    pdf_parser.parse(file_path_or_url='./data/test.pdf', output_dir='./data/docling', ouput_type='md')
+    parse_result = pdf_parser.parse(file_path_or_url='./data/test.pdf')
     
+    md_result = pdf_parser.convert_to_file(parse_result, ouput_type='md')
+
+    # from langchain_community.document_loaders import UnstructuredMarkdownLoader
+    # markdown_path = "../../../../../README.md"
+    # loader = UnstructuredMarkdownLoader(markdown_path)
+    # data = loader.load()
+
+    from src.splitter.md_spliter import MDSpliter
+    headers_to_split_on = [
+        ("#", "Header 1"),
+        ("##", "Header 2"),
+        ("###", "Header 3"),
+    ]
+    md_spliter = MDSpliter(headers_to_split_on=headers_to_split_on, strip_headers=False)
+    splits = md_spliter.split(markdown_document = parse_result)
+
     from src.splitter.recursive_char_spliter import RecursiveTextSplitter
+    chunk_size = 250
+    chunk_overlap = 15
+    r_spliter = RecursiveTextSplitter(
+            chunk_size=chunk_size, chunk_overlap=chunk_overlap
+        )
+    splits = r_spliter.split(document = splits)
 
-    # 初始化RecursiveTextSplitter
-    splitter = RecursiveTextSplitter(chunk_size=250, chunk_overlap=15)
-
-    # 读取Markdown文件的内容
-    with open('./data/docling/test.md', 'r', encoding='utf-8') as file:
-        markdown_content = file.read()
-
-    # 分割Markdown内容
-    splits = splitter.split(markdown_content)
-
-    # 打印分割后的文本块
     for i, split in enumerate(splits):
-        print(f"Split {i + 1}:\n{split}\n")
-
-    # 打印分割后的文本块数量
-    print(f"Number of splits: {len(splits)}")
-
+        
+        metadata = {}
+        metadata['filename'] = parse_result.document.origin.filename
+        metadata['position'] = splits[0].metadata
     
+        dic = {}
+        embedding = ''
+        dic['content'] = splits[0].page_content
+        dic['metadata'] =  metadata
+        dic['embedding'] = embedding
+    
+    # split(directory_path='./data/docling')
+    
+    # from src.splitter.recursive_char_spliter import RecursiveTextSplitter
 
+    # # 初始化RecursiveTextSplitter
+    # splitter = RecursiveTextSplitter(chunk_size=250, chunk_overlap=15)
+
+    # # 读取Markdown文件的内容
+    # with open('./data/docling/test.md', 'r', encoding='utf-8') as file:
+    #     markdown_content = file.read()
+
+    # # 分割Markdown内容
+    # splits = splitter.split(markdown_content)
+
+    # # 打印分割后的文本块
+    # for i, split in enumerate(splits):
+    #     print(f"Split {i + 1}:\n{split}\n")
+
+    # # 打印分割后的文本块数量
+    # print(f"Number of splits: {len(splits)}")
     
     # import os.path
     # 使用示例
@@ -151,6 +186,7 @@ if __name__ == '__main__':
     # reranker_results = reranker.rank(query, [result[1] for result in results])
     # print(reranker_results)
     # pass
+
     # import requests
     # address = ''
     # url = ''

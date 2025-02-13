@@ -49,13 +49,32 @@ class PDFParser(BaseParser):
             }
         )
 
-    def parse(self, file_path_or_url, output_dir, ouput_type = 'md'):
+    def parse(self, file_path_or_url):
         start_time = time.time()
         result = self.doc_converter.convert(file_path_or_url)
         end_time = time.time() - start_time
         logger.info(f"Document converted in {end_time:.2f} seconds.")
+            
+        return result
 
-        ## Export results
+    def get_file_name(self, result):
+        return result.document.origin.filename
+        
+    def convert_to_file(self, result, ouput_type ='md'):
+        if ouput_type == 'json':
+          return json.dumps(result.document.export_to_dict())      
+        elif ouput_type == 'text':
+            return result.document.export_to_text()
+        elif ouput_type == 'md':
+            return result.document.export_to_markdown()
+        elif ouput_type == 'doctags':
+            return result.document.export_to_document_tokens()
+
+        # 默认返回md格式结果
+        return result.document.export_to_markdown()
+        
+
+    def save_parse_result(self, result, output_dir, ouput_type ='md'):
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         doc_filename = result.input.file.stem
@@ -76,4 +95,7 @@ class PDFParser(BaseParser):
         except:
             print(f"Failed to export {doc_filename} to {ouput_type}.")
 
-        return result
+        
+
+        
+        

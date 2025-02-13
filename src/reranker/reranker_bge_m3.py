@@ -15,9 +15,9 @@ class RerankerBGEM3(RankerBase):
         self.model.to(self.device)  # 将模型移动到指定设备
         self.model.eval()  # 设置模型为评估模式
 
-    def rank(self, query: str, candidate_query, top_n=3) -> List[Tuple[float, str]]:
+    def rank(self, query: str, candidate_query, top_n=3) -> List:
         # 创建查询和文本对
-        pairs = [[query, txt] for txt in candidate_query]
+        pairs = [[query, item['content']] for item in candidate_query]
 
         # 计算得分
         with torch.no_grad():  # 不计算梯度以节省内存

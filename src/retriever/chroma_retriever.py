@@ -14,11 +14,13 @@ class ChromaRetriever:
         self.collection = self.client.create_collection(name=collection_name)
 
     def add(self, parse_output: List[Dict]):
+        nums = self.collection.count()
         for id, dic in enumerate(parse_output):
             self.collection.add(
                 documents=[dic['content']],
                 embeddings=[dic['embedding']],
-                ids= str(id))
+                metadatas=[dic['metadata']],
+                ids= str(id) + str(nums))
 
     def load(self, collection_name: str):
         try:
