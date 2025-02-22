@@ -13,7 +13,8 @@ def main():
     rerank_model_path = ''
     URL_ADDRESS = ''
     
-    pdf_parser = PdfParser(ocr_model_path=ocr_model_path, artifacts_path=artifacts_path)
+    from src.parser.pdf_parser import PDFParser
+    pdf_parser = PDFParser(ocr_model_path=ocr_model_path, artifacts_path=artifacts_path)
     parse_result = pdf_parser.parse(file_path_or_url=pdf_file_path)
     file_name = pdf_parser.get_file_name(parse_result)
     md_result = pdf_parser.convert_to_file(parse_result, ouput_type='md')
@@ -62,7 +63,7 @@ def main():
     
     db.add(db_dataset)
 
-    from retriever.bm25_retriever import BM25Retriever
+    from src.retriever.bm25_retriever import BM25Retriever
     bm25_corpus = []
 
     for split in splits:
