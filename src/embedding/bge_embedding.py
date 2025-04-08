@@ -34,3 +34,24 @@ class BgeEmbedding(BaseEmbedding):
         # print("Sentence embeddings:", sentence_embeddings)
 
         return sentence_embeddings
+
+    def get_batch_embedding(self, batch: List[str]) -> List[List[float]]:
+        '''
+        Generates embeddings for a batch of texts using the Bge embedding.
+        '''
+        encoded_input = self.tokenizer(batch, padding=True, truncation=True, return_tensors='pt')
+        
+        with torch.no_grad():
+            model_output = self.model(**encoded_input)
+            
+            # Perform pooling. In this case, cls pooling.
+            sentence_embeddings = model_output[0][:, 0]
+
+        # normalize embeddings
+        sentence_embeddings = torch.nn.functional.normalize(sentence_embeddings, p=2, dim=1)
+        sentence_embeddings = sentence_embeddings.tolist()
+
+        return sentence_embeddings
+        
+        
+        

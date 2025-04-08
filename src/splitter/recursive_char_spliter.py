@@ -7,7 +7,12 @@ class RecursiveTextSplitter:
             chunk_size=chunk_size, chunk_overlap=chunk_overlap
         )
         
-    def split(self, document) -> list:
+    def split_documents(self, document) -> list:
         splits = self.text_splitter.split_documents(document)
+
+        return splits
+
+    def split_text(self, text) -> list:
+        splits = self.text_splitter.split_text(text)
 
         return splits
